@@ -92,11 +92,14 @@ def wsi2ometiff(wsi_path, tiff_path, crop: Optional[Tuple[int,int,int,int]|bool]
     if isinstance(crop, bool):
         im = pyvips.Image.new_from_file(wsi_path, autocrop=crop)
     else:
-        x0, y0, width, height = crop
-        x0 = max(0, min(x0, wsi.info['width']))
-        y0 = max(0, min(y0, wsi.info['height']))
-        width = min(width, wsi.info['width'] - x0)
-        height = min(height, wsi.info['height'] - y0)
+        if crop is None:
+            x0, y0, width, height = 0, 0, wsi.info["width"], wsi.info["height"]
+        else:
+            x0, y0, width, height = crop
+            x0 = max(0, min(x0, wsi.info["width"]))
+            y0 = max(0, min(y0, wsi.info["height"]))
+            width = min(width, wsi.info["width"] - x0)
+            height = min(height, wsi.info["height"] - y0)
         im = pyvips.Image.new_from_file(wsi_path, autocrop=False)
         im = im.crop(x0, y0, width, height)
 
