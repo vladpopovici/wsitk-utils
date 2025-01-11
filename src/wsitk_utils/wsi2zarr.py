@@ -6,7 +6,7 @@ from math import floor
 import zarr
 from tqdm import trange
 import pyvips
-
+import numpy as np
 
 def wsi2zarr(
         wsi_path: Union[str|Path],
@@ -15,7 +15,7 @@ def wsi2zarr(
         band_size: Optional[int]=1528,
 ) -> None:
     """
-    Converts a WSI file to OME-TIFF format.
+    Converts a WSI file to pyramidal ZARR format.
 
     :param wsi_path: source file path.
     :param dst_path: destination file path.
@@ -49,6 +49,8 @@ def wsi2zarr(
             width = min(width, wsi.info["width"] - x0)
             height = min(height, wsi.info["height"] - y0)
 
+    levels = np.zeros((2, wsi.level_count), dtype=np.int64)
+
     with (zarr.open_group(str(dst_path/'pyramid_0.zarr'), mode='w') as root):
         for i in trange(wsi.level_count, desc="Pyramid"):
             # copy levels from WSI, band by band...
@@ -63,7 +65,9 @@ def wsi2zarr(
             im = im.flatten()
 
             shape = (ch, cw, 3)  # YXC axes
-            arr = root.zeros(str(i), shape=shape, chunks=(4096, 4096, None), dtype="uint8")
+            levels[:, i] = (cw, ch)
+
+            arr = root.zeros('/'+str(i), shape=shape, chunks=(4096, 4096, None), dtype="uint8")
             n_bands = ch // band_size
             incomplete_band = shape[0] % band_size
             for j in trange(n_bands, desc=f"Level {i}"):  # by horizontal bands
@@ -83,12 +87,14 @@ def wsi2zarr(
         root.attrs["mpp_x"] = wsi.info['mpp_x']
         root.attrs["mpp_y"] = wsi.info["mpp_y"]
         root.attrs["mag_step"] = int(wsi.info['magnification_step'])
+        root.attrs["objective_power"] = wsi.info['objective_power']
+        root.attrs["extent"] = levels.tolist()
 
     return
 
 
 if __name__ == "__main__":
-    p = opt.ArgumentParser(description="Convert an image from WSI format to OME-TIFF with eventual auto/cropping.")
+    p = opt.ArgumentParser(description="Convert an image from WSI format to ZARR with eventual auto/cropping.")
     p.add_argument("--input", action="store", help="whole slide image to process", required=True)
     p.add_argument("--output", action="store", help="destination file path", required=True)
     p.add_argument("--autocrop", action="store_true",

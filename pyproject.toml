@@ -8,10 +8,17 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "bottleneck>=1.4.2",
     "configargparse>=1.7",
+    "dask>=2024.12.1",
+    "h5netcdf>=1.4.1",
+    "h5py>=3.12.1",
+    "netcdf4>=1.7.2",
     "pyvips>=2.2.3",
+    "sparse>=0.15.4",
     "tqdm>=4.67.1",
     "wsitk-core",
+    "xarray>=2025.1.1",
     "zarr>=2.18.3",
 ]
 
